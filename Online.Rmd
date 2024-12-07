@@ -1,0 +1,792 @@
+---
+title: "Online-Shopping"
+author: "Pradip Basnet"
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    df_print: paged
+---
+
+# Dataset Features Information
+
+## 1. Administrative (Numerical)
+This feature represents the number of pages the user visited that fall under the "Administrative" category. These pages likely include sections like account management, profile settings, etc.
+Range: 0 to 27.
+
+## 2. Administrative_Duration (Numerical)
+The total amount of time (in seconds) the user spent on administrative pages during their session.
+Range: 0 to 3398 seconds.
+
+## 3. Informational (Numerical)
+The number of pages the user visited that are categorized as "Informational," which could include help pages, FAQs, or product information pages.
+Range: 0 to 24.
+
+## 4. Informational_Duration (Numerical)
+The total time (in seconds) spent on informational pages during the session.
+Range: 0 to 2549 seconds.
+
+## 5. ProductRelated (Numerical)
+This feature indicates the number of pages viewed related to products, such as product listings, product details, etc.
+Range: 0 to 705 pages.
+
+## 6. ProductRelated_Duration (Numerical)
+The total amount of time (in seconds) the user spent on product-related pages during theirf session.
+Range: 0 to 63172 seconds.
+
+## 7. BounceRates (Numerical)
+The percentage of visitors who leave the site after viewing only one page (bounce). A high bounce rate suggests users are not finding the content or product appealing.
+Range: 0 to 0.2 (normalized between 0 and 1).
+
+## 8. ExitRates (Numerical)
+The percentage of page exits, representing how often visitors exit from a particular page during the session.
+Range: 0 to 0.2 (normalized between 0 and 1).
+
+## 9. PageValues (Numerical)
+This feature measures the average value of a page viewed by a visitor before completing an e-commerce transaction. A higher value indicates that the page played a significant role in leading to revenue generation.
+Range: 0 to 361.76.
+
+## 10. SpecialDay (Numerical)
+Indicates the closeness to a special day (like holidays), normalized between 0 and 1. Values closer to 1 indicate proximity to a significant holiday or sales event, which may influence purchasing behavior.
+Range: 0 to 1.
+
+## 11. Month (Categorical)
+The month during which the session occurred, encoded as strings (e.g., "Feb", "Mar", etc.). This feature could help identify seasonal trends in shopping behavior.
+
+## 12. OperatingSystems (Numerical)
+An integer representing the operating system used by the visitor. These are likely encoded values for common operating systems like Windows, macOS, Linux, etc.
+Range: 1 to 8.
+
+## 13. Browser (Numerical)
+An integer representing the browser used by the visitor (e.g., Chrome, Firefox, Safari). This feature is encoded numerically.
+Range: 1 to 13.
+
+## 14. Region (Numerical)
+A numerical code representing the geographic region where the visitor is located.
+Range: 1 to 9.
+
+## 15. TrafficType (Numerical)
+Represents the source of traffic, encoded as integers. For example, traffic might come from organic search, paid advertising, or direct access.
+Range: 1 to 20.
+
+## 16. VisitorType (Categorical)
+This feature indicates whether the visitor is a Returning Visitor or a New Visitor. This could provide insight into customer loyalty and repeat behavior.
+
+## 17. Weekend (Boolean)
+A boolean feature indicating whether the session occurred on a weekend (True) or not (False). This can help analyze user behavior based on the day of the week.
+
+## 18. Revenue (Boolean)
+The target variable indicating whether the visitor generated revenue for the website (i.e., made a purchase). This is a binary outcome where True means a purchase was made and False means no purchase was made.
+
+
+
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+library(tidyverse)
+library(caret)
+library(readr)
+library(plotly)
+library(GGally)
+library(vcd)
+library(beeswarm)
+```
+
+
+```{r}
+data <- read.csv("online_shoppers_intention.csv")
+#view(data)
+glimpse(data)
+```
+
+
+
+```{r}
+duplicates <- data[duplicated(data),]
+print(duplicates)
+
+# Remove duplicated rows
+data_unique <- data[!duplicated(data), ]
+
+# Print the cleaned data without duplicates
+print(data_unique)
+```
+
+
+
+```{r}
+str(data)
+```
+
+```{r}
+glimpse(data)
+```
+
+
+```{r}
+summary(data)
+```
+
+```{r}
+sum(is.na(data))
+```
+
+
+```{r}
+colSums(is.na(data))
+```
+
+```{r}
+colnames(data)
+```
+
+```{r}
+sum(is.na(data))
+```
+
+
+
+```{r}
+# Created a new feature for total time spent on the site
+data <- data %>%
+  mutate(Time_on_Site = Administrative_Duration + Informational_Duration + ProductRelated_Duration)
+data
+```
+
+```{r}
+unique(data$Month)
+
+```
+
+
+
+
+This line plot visualizes how engagement, measured by Time_on_Site, varies for different visitor types across months:This plot is particularly useful for understanding how user engagement changes over time and across different visitor segments (e.g., new vs. returning visitors).
+
+interpretation:This line plot visualizes how engagement, measured by Time_on_Site, varies for different visitor types across months. It helps understand how user engagement changes over time and across different visitor segments (e.g., new vs. returning visitors).
+
+
+
+This violin plot shows the distribution of time spent on the site, compared to revenue generated:This visualization helps understand how the time spent on the site correlates with whether revenue was generated, giving insights into how engagement translates to purchases.
+```{r}
+# Violin plot for Time_on_Site across revenue categories
+p <- ggplot(data, aes(x = as.factor(Revenue), y = Time_on_Site, fill = as.factor(Revenue))) +
+  geom_violin() +
+  labs(title = "Violin Plot: Distribution of Time_on_Site Across Revenue", 
+       x = "Revenue", y = "Time on Site") +
+  theme_minimal()+
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+ggplotly(p)
+```
+
+
+```{r}
+# Bubble chart for BounceRates vs ExitRates by Region
+ggplot(data, aes(x = BounceRates, y = ExitRates,  color = as.factor(Revenue))) +
+  geom_point(alpha = 0.6) +
+  labs(title = "Exploring Regional Bounce and Exit Rates with Revenue Differences", 
+       x = "Bounce Rates", y = "Exit Rates") +
+  theme_minimal()+
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+```
+
+
+
+
+```{r}
+# Save the cleaned and processed dataset
+write.csv(data, "processed_shoppers_data.csv", row.names = FALSE)
+```
+
+
+
+
+
+## Q.1) What is the overall impact of ProductRelated_Duration on revenue generation compared to PageValues?
+ Overall, PageValues have a stronger impact on revenue generation compared to ProductRelated_Duration. Higher PageValues are more closely associated with purchases, while ProductRelated_Duration has a more scattered effect. Users can make purchases with both short and long durations if the pages they interact with have high value. On the other hand, long browsing sessions without engaging valuable pages do not guarantee revenue.
+
+
+The scatter plot shows the relationship between how much time users spend on product-related pages (ProductRelated_Duration) and the value of those pages in terms of leading to purchases (PageValues).
+
+The value of the pages (PageValues) is a more significant factor in revenue generation than the time spent on product-related pages. Higher page values tend to correlate with successful purchases, even with shorter browsing times, while longer browsing sessions without engaging high-value content do not necessarily result in revenue.
+This scatter plot visualizes the relationship between ProductRelated_Duration and PageValues by revenue, showing how product-related time correlates to the value of pages and how it influences revenue generation.
+```{r}
+# Scatter plot between ProductRelated_Duration and PageValues
+plot_ly(
+  data = data, 
+  x = ~ProductRelated_Duration, 
+  y = ~PageValues, 
+  type = 'scatter', 
+  mode = 'markers', 
+  color = ~Revenue, 
+  marker = list(opacity = 0.6),
+  hoverinfo = 'text',
+  text = ~paste('ProductRelated_Duration:', ProductRelated_Duration, 
+                '<br>PageValues:', PageValues,
+                '<br>Revenue:', Revenue)
+) %>%
+  layout(
+    title = list(text = 'Impact of ProductRelated Duration on Page Value by Revenue', x = 0.5),
+    xaxis = list(title = 'ProductRelated_Duration'),
+    yaxis = list(title = 'PageValues')
+  )
+```
+
+## Q.2) Does spending more time on product-related pages (ProductRelated_Duration) always result in a purchase?
+
+The plot compares the distribution of ProductRelated_Duration (time spent on product-related pages) for two categories: Revenue = FALSE (no purchase) and Revenue = TRUE (purchase made). Each box represents the interquartile range (IQR), with the line inside the box indicating the median value, and the dots represent outliers.
+Both groups have a similar median ProductRelated_Duration, meaning the majority of users, regardless of whether they generated revenue or not, spent a similar amount of time on product-related pages.
+However, there are more outliers (users who spent much more time than average) in the Revenue = FALSE group. This suggests that spending more time on product pages doesn't necessarily lead to purchases, as many users who didn’t generate revenue spent excessive amounts of time on these pages.
+The box plot suggests that ProductRelated_Duration alone is not a decisive factor in determining whether a user will make a purchase. While both purchasing and non-purchasing users tend to spend short amounts of time on product-related pages, the non-purchasing group shows more outliers, indicating that longer browsing sessions don’t always lead to conversions. Efficiency and value of interaction seem to be more critical in generating revenue than just the time spent on product pages.
+
+```{r}
+# Box plot for ProductRelated_Duration across Revenue categories
+p <- ggplot(data, aes(x = as.factor(Revenue), y = PageValues)) +
+  geom_boxplot() +
+  labs(title = "Distribution of Product-Related Duration by Revenue Category", x = "Revenue", y = "ProductRelated_Duration") +
+  theme_minimal()+
+  theme(plot.title = element_text(hjust = 0.5,face = "bold"))
+ggplotly(p)
+```
+
+```{r}
+ggplot(data, aes(x = as.factor(Revenue), y = PageValues)) +
+  geom_boxplot() +
+  labs(title = "Distribution of PageValues Across Revenue Categories",
+       x = "Revenue (0 = No, 1 = Yes)",
+       y = "PageValues") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+```
+
+
+The bar chart shows a clear distinction between different types of visitors and their likelihood to generate revenue. Returning Visitors form the largest group of users on the site and are significantly more likely to make a purchase, as indicated by the larger blue section for revenue generation. This highlights the importance of customer retention and loyalty, as returning visitors contribute the most to revenue.
+
+In contrast, New Visitors are less likely to make a purchase on their first visit, as shown by the much smaller blue section compared to the number of non-revenue-generating new visitors. This suggests that new visitors might need more time or exposure before converting into paying customers.
+
+The Other Visitors category is minimal in size and contributes insignificantly to overall traffic and revenue, making it a less impactful group in terms of conversion and purchasing behavior.
+
+
+```{r}
+# Bar chart to show distribution of VisitorType by Revenue
+p <- ggplot(data, aes(x = VisitorType, fill = as.factor(Revenue))) +
+  geom_bar(position = "dodge") +
+  labs(title = "Revenue Comparison Across Visitor Types", x = "VisitorType", fill = "Revenue") +
+  theme_minimal()+
+  theme(plot.title = element_text(hjust = 0.5,face = "bold"))
+ggplotly(p)
+```
+
+Provides insights into the spread of page values, helping identify how frequently different page values occur and whether higher page values are common or rare.
+
+
+
+Highlights which traffic sources are most effective in generating revenue, guiding marketing strategies to focus on higher-converting traffic sources.
+
+```{r}
+# Stacked bar chart for Revenue across TrafficType
+p <- ggplot(data, aes(x = as.factor(TrafficType), fill = as.factor(Revenue))) +
+  geom_bar() +
+  labs(title = "Impact of Traffic Sources on Revenue Generation", x = "TrafficType", fill = "Revenue") +
+  theme_minimal()+
+  theme(plot.title = element_text(hjust = 0.5,face = "bold"))
+ggplotly(p)
+```
+
+Identifies seasonal trends in revenue generation, helping to understand when users are more likely to make purchases (e.g., during holiday seasons or sales events).
+```{r}
+# Time series plot for Revenue across months
+p <- ggplot(data, aes(x = as.factor(Month), fill = as.factor(Revenue))) +
+  geom_bar(position = "dodge") +
+  labs(title = "Monthly Revenue Trends by Revenue Status", x = "Month", y = "Count", fill = "Revenue") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  theme(plot.title = element_text(hjust = 0.5,face = "bold"))
+ggplotly(p)
+```
+
+
+```{r}
+p <- ggplot(data, aes(x = as.factor(Browser), fill = as.factor(Revenue))) +
+  geom_bar(position = "dodge") +
+  labs(title = "Revenue Generation Across Browsers", x = "Browser", y = "Count of Users", fill = "Revenue") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+ggplotly(p)
+```
+
+
+```{r}
+p <-  ggplot(data, aes(x = as.factor(OperatingSystems), fill = as.factor(Revenue))) +
+  geom_bar(position = "dodge") +
+  labs(title = "Revenue Generation Across Operating Systems", x = "Operating Systems", y = "Count of Users", fill = "Revenue") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+ggplotly(p)
+```
+
+
+```{r}
+ggplot(data, aes(x = as.factor(Region), y = Time_on_Site, fill = as.factor(Revenue))) +
+  geom_boxplot() +
+  labs(title = "Time Spent on Site by Region and Revenue", x = "Region", y = "Time on Site", fill = "Revenue") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+```
+
+
+
+```{r}
+p <- ggplot(data, aes(x = as.factor(Region), fill = as.factor(Revenue))) +
+  geom_bar(position = "dodge") +
+  labs(title = "Revenue Generation Across Regions", x = "Region", y = "Count of Users", fill = "Revenue") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+ggplotly(p)
+```
+
+
+```{r}
+# Load necessary libraries
+library(ggplot2)
+
+# Plot 1: Revenue generation comparison between New Visitors and Returning Visitors
+p <- ggplot(data, aes(x = VisitorType, fill = as.factor(Revenue))) +
+  geom_bar(position = "dodge") +
+  labs(title = "Revenue Comparison Between New and Returning Visitors",
+       x = "Visitor Type", y = "Count of Users", fill = "Revenue") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+ggplotly(p)
+```
+
+
+
+
+
+
+Helps analyze how visitor type and weekend activity influence revenue, potentially revealing behavioral patterns such as weekend shopping preferences.
+
+```{r}
+# Facet grid to compare Revenue behavior across VisitorType and Weekend
+p <- ggplot(data, aes(x = as.factor(Revenue), fill = as.factor(Revenue))) +
+  geom_bar() +
+  facet_grid(VisitorType ~ Weekend) +
+  labs(title = "Revenue Patterns Across Visitor Type and Weekend Behavior", x = "Revenue", y = "Count", fill = "Revenue") +
+  theme_minimal()+
+  theme(plot.title = element_text(hjust = 0.5,face = "bold"))
+ggplotly(p)
+```
+
+
+
+
+```{r}
+# Bar plot for VisitorType
+p <- ggplot(data, aes(x = VisitorType)) +
+  geom_bar(fill = "cornflowerblue") +
+  ggtitle("Analysis of Visitor Types in User Sessions") +
+  theme_minimal()+
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+ggplotly(p)
+```
+
+
+```{r}
+library(plotly)
+
+# Pie chart for Revenue
+revenue_dist <- data %>%
+  group_by(Revenue) %>%
+  summarise(count = n()) %>%
+  mutate(perc = count / sum(count) * 100)
+
+plot_ly(revenue_dist, labels = ~Revenue, values = ~perc, type = 'pie') %>%
+  layout(title = 'Percentage of Revenue-Generating Sessions',
+         xaxis = list(showgrid = FALSE, zeroline = FALSE),
+         yaxis = list(showgrid = FALSE, zeroline = FALSE))
+```
+
+
+
+
+```{r}
+# Histogram to show distribution of PageValues
+ ggplot(data, aes(x = PageValues)) +
+  geom_histogram(binwidth = 10, fill = "cornflowerblue", alpha = 0.7) +
+  labs(title = "Distribution of PageValues", x = "PageValues", y = "Frequency") +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5,face = "bold"))
+```
+
+
+```{r}
+# Pie chart for revenue contribution by VisitorType
+visitor_revenue <- data %>%
+  group_by(VisitorType) %>%
+  summarise(revenue_sessions = sum(Revenue))
+
+# Plot pie chart
+plot_ly(visitor_revenue, labels = ~VisitorType, values = ~revenue_sessions, type = 'pie') %>%
+  layout(title = 'Revenue Contribution by Visitor Type')
+```
+
+
+
+
+```{r}
+ggplot(data, aes(x = ProductRelated_Duration, y = BounceRates, size = PageValues, color = as.factor(Revenue))) +
+  geom_point(alpha = 0.6) +
+  labs(title = "Relationship Between Product-Related Duration and Bounce Rates by Revenue", x = "ProductRelated_Duration", y = "BounceRates") +
+  theme_minimal()+
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+```
+
+
+
+
+```{r}
+# Lollipop chart for TrafficType
+traffic_data <- data %>%
+  group_by(TrafficType) %>%
+  summarise(count = n()) %>%
+  arrange(desc(count))
+
+p <- ggplot(traffic_data, aes(x = TrafficType, y = count)) +
+  geom_point(size = 4) +
+  geom_segment(aes(x = TrafficType, xend = TrafficType, y = 0, yend = count)) +
+  coord_flip() +
+  ggtitle("Visualizing Traffic Source Counts Across Types") +
+  theme_minimal()+
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+ggplotly(p)
+```
+
+
+
+
+
+```{r}
+# Bar plot showing visitor distribution across regions
+p <- ggplot(data, aes(x = as.factor(Region))) +
+  geom_bar(fill = "cornflowerblue") +
+  ggtitle("Visitor Distribution Across Regions") +
+  xlab("Region") +
+  ylab("Number of Visitors") +
+  theme_minimal()+
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+ggplotly(p)
+```
+
+
+```{r}
+# Calculate revenue proportion by region
+region_revenue <- data %>%
+  group_by(Region) %>%
+  summarise(total_sessions = n(),
+            revenue_sessions = sum(Revenue),
+            revenue_rate = revenue_sessions / total_sessions)
+
+# Plot revenue rate by region
+p <- ggplot(region_revenue, aes(x = as.factor(Region), y = revenue_rate, fill = as.factor(Region))) +
+  geom_col() +
+  ggtitle("Exploring Revenue Proportions Across Geographic Regions") +
+  xlab("Region") +
+  ylab("Revenue Rate") +
+  theme_minimal()+
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+ggplotly(p)
+```
+
+```{r}
+colnames(data)
+```
+```{r}
+p <- ggplot(data, aes(x = as.factor(Month), fill = VisitorType)) +
+  geom_bar(position = "dodge", aes(y = ..count.., fill = Revenue)) +
+  labs(title = "Cohort Analysis: Revenue Generation by VisitorType Over Time", 
+       x = "Month", y = "Count", fill = "Revenue") +
+  theme_minimal() +
+  facet_wrap(~ VisitorType) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        axis.text.x = element_text(angle = 90, hjust = 1))  # Rotating x-axis text
+ggplotly(p)
+```
+
+
+```{r}
+# Heatmap showing visitor type by month and revenue generation
+heat_data <- data %>%
+  group_by(Month, VisitorType) %>%
+  summarise(revenue_sessions = sum(Revenue))
+
+pheatmap::pheatmap(reshape2::acast(heat_data, Month ~ VisitorType, value.var = "revenue_sessions"), 
+                   main = "Revenue Generation by Visitor Type and Month")
+```
+
+
+```{r}
+# Stacked area chart for traffic sources over time
+p <- ggplot(data, aes(x = as.factor(Month), y = ..count.., fill = as.factor(TrafficType))) +
+  geom_bar(position = "stack", aes(fill = as.factor(Revenue))) +
+  labs(title = "Revenue Contribution from Traffic Sources Across Months", 
+       x = "Month", y = "Revenue Contribution", fill = "Traffic Source") +
+  theme_minimal()+
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+ggplotly(p)
+#view(data)
+```
+
+
+
+
+
+```{r}
+# Violin plot for Time_on_Site across revenue categories
+p <- ggplot(data, aes(x = as.factor(Revenue), y = Time_on_Site, fill = as.factor(Revenue))) +
+  geom_violin() +
+  labs(title = "Violin Plot: Distribution of Time_on_Site Across Revenue", 
+       x = "Revenue", y = "Time on Site") +
+  theme_minimal()+
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+ggplotly(p)
+```
+
+
+
+
+
+```{r}
+monthly_conversion <- data %>%
+  group_by(Month, TrafficType) %>%
+  summarise(Revenue_Sessions = sum(Revenue))
+
+p <- ggplot(monthly_conversion, aes(x = as.factor(Month), y = Revenue_Sessions, color = as.factor(TrafficType), group = TrafficType)) +
+  geom_line(size = 1) +
+  geom_point() +
+  labs(title = "Monthly Conversion Trends by Traffic Type", x = "Month", y = "Revenue Sessions", color = "TrafficType") +
+  theme_minimal()+
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+ggplotly(p)
+```
+
+
+
+```{r}
+# Treemap for traffic sources and revenue contribution
+library(treemap)
+treemap_data <- data %>%
+  group_by(TrafficType) %>%
+  summarise(Sessions = n(), Revenue_Sessions = sum(Revenue))
+
+p <- treemap(treemap_data, index = "TrafficType", vSize = "Sessions", vColor = "Revenue_Sessions",
+        title = "Treemap: Proportion of Traffic Sources and Their Revenue Contributions",
+        palette = "Blues", border.col = "white") +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+ggplotly(p)
+```
+
+
+```{r}
+# Simple funnel-like chart for conversion from TrafficType to Revenue
+funnel_data <- data %>%
+  group_by(TrafficType) %>%
+  summarise(Total = n(), Revenue_Sessions = sum(Revenue))
+
+p <- ggplot(funnel_data, aes(x = as.factor(TrafficType), y = Total)) +
+  geom_bar(stat = "identity", fill = "cornflowerblue") +
+  geom_text(aes(label = Revenue_Sessions), vjust = -0.5) +
+  labs(title = "FConversion from Traffic Type to Revenue Sessions", 
+       x = "TrafficType", y = "Sessions") +
+  theme_minimal()+
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+ggplotly(p)
+```
+
+
+```{r}
+# Facet scatter plot for BounceRates vs ExitRates, faceted by Revenue
+ggplot(data, aes(x = BounceRates, y = ExitRates)) +
+  geom_point(aes(color = as.factor(Revenue)), alpha = 0.6) +
+  facet_wrap(~ Revenue) +
+  labs(title = "Facet Scatter Plot: BounceRates vs ExitRates by Revenue",
+       x = "BounceRates", y = "ExitRates", color = "Revenue") +
+  theme_minimal()
+```
+
+
+
+
+
+
+```{r}
+p <- ggplot(data, aes(x = as.factor(OperatingSystems), fill = as.factor(Revenue))) +
+  geom_bar(position = "fill") +
+  labs(title = "Stacked Bar Plot of Operating Systems by Revenue", x = "Operating System", y = "Proportion", fill = "Revenue") +
+  theme_minimal()+
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+ggplotly(p)
+```
+
+```{r}
+p <- ggplot(data, aes(x = as.factor(TrafficType), fill = as.factor(Revenue))) +
+  geom_bar(position = "dodge") +
+  labs(title = "Traffic Type Breakdown: Revenue vs Non-Revenue Sessions", x = "Traffic Type", fill = "Revenue") +
+  theme_minimal()+
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+ggplotly(p)
+```
+
+```{r}
+ggplot(data, aes(x = ProductRelated, y = Informational, size = BounceRates, color = as.factor(Revenue))) +
+  geom_point(alpha = 0.6) +
+  labs(title = "Exploring the Interaction Between Product and Informational Pages with Revenue", x = "Product Related", y = "Informational") +
+  theme_minimal()
+```
+
+```{r}
+# Create cumulative sum for Revenue by VisitorType
+cumulative_revenue <- data %>%
+  arrange(Month) %>%
+  group_by(Month, VisitorType) %>%
+  mutate(Cumulative_Revenue = cumsum(Revenue))
+
+# Plot cumulative revenue by VisitorType
+ ggplot(cumulative_revenue, aes(x = as.factor(Month), y = Cumulative_Revenue, color = VisitorType, group = VisitorType)) +
+  geom_line(size = 1) +
+  geom_point() +
+  labs(title = "Tracking Cumulative Revenue by Visitor Type Across Months", x = "Month", y = "Cumulative Revenue", color = "VisitorType") +
+  theme_minimal()+
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+```
+
+```{r}
+# Aggregate revenue by month
+monthly_revenue <- data %>%
+  group_by(Month) %>%
+  summarise(Revenue_Sessions = sum(Revenue))
+
+# Bar plot for Revenue by Month
+p <- ggplot(monthly_revenue, aes(x = as.factor(Month), y = Revenue_Sessions)) +
+  geom_bar(stat = "identity", fill = "cornflowerblue", alpha = 0.7) +
+  labs(title = "Monthly Revenue Sessions Overview", x = "Month", y = "Revenue Sessions") +
+  theme_minimal() +
+theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+ggplotly(p)
+```
+
+
+```{r}
+library(GGally)
+ggpairs(data[,c("Administrative_Duration", "Informational_Duration", "ProductRelated_Duration", "PageValues", "BounceRates")])
+```
+
+
+```{r}
+# Bar plot for Operating System
+p <- ggplot(data, aes(x = as.factor(OperatingSystems), fill = as.factor(Revenue))) +
+  geom_bar(position = "dodge") +
+  labs(title = "Revenue by Operating System", x = "Operating System", fill = "Revenue") +
+  theme_minimal()+
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+ggplotly(p)
+```
+
+
+
+```{r}
+# Bar plot for Browser
+p <- ggplot(data, aes(x = as.factor(Browser), fill = as.factor(Revenue))) +
+  geom_bar(position = "dodge") +
+  labs(title = "Revenue by Browser", x = "Browser", fill = "Revenue") +
+  theme_minimal()+
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+ggplotly(p)
+```
+
+
+```{r}
+# Line plot for Time_on_Site by VisitorType over months
+ggplot(data, aes(x = as.factor(Month), y = Time_on_Site, color = VisitorType, group = VisitorType)) +
+  geom_line(size = 1) +
+  geom_point() +
+  labs(title = "Tracking Monthly User Engagement by Visitor Type", x = "Month", y = "Time on Site", color = "VisitorType") +
+  theme_minimal()+
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+```
+
+```{r}
+p <- ggplot(data, aes(x = as.factor(Month), fill = VisitorType)) +
+  geom_bar(position = "dodge", aes(y = ..count.., fill = Revenue)) +
+  labs(title = "Cohort Analysis: Revenue Generation by VisitorType Over Time", 
+       x = "Month", y = "Count", fill = "Revenue") +
+  theme_minimal() +
+  facet_wrap(~ VisitorType) +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"),
+        axis.text.x = element_text(angle = 90, hjust = 1))  # Rotating x-axis text
+ggplotly(p)
+```
+
+
+```{r}
+# Stacked bar chart for Revenue across TrafficType
+p <- ggplot(data, aes(x = as.factor(TrafficType), fill = as.factor(Revenue))) +
+  geom_bar(position = "dodge") +
+  labs(title = "Comparing Revenue Generation Across Traffic Types", x = "TrafficType", fill = "Revenue") +
+  theme_minimal()+
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+ggplotly(p)
+```
+
+
+```{r}
+# Bubble chart for BounceRates vs ExitRates by Region
+ggplot(data, aes(x = BounceRates, y = ExitRates, size = Region, color = as.factor(Revenue))) +
+  geom_point(alpha = 0.6) +
+  labs(title = "Exploring Regional Bounce and Exit Rates with Revenue Differences", 
+       x = "Bounce Rates", y = "Exit Rates") +
+  theme_minimal()+
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+```
+
+
+```{r}
+# Time series plot for BounceRates and ExitRates across months
+ggplot(data, aes(x = Month, y = BounceRates, group = 1)) +
+  geom_line(color = "blue") +
+  geom_point() +
+  labs(title = "Time Series of BounceRates Over Months", x = "Month ", y = "BounceRates") +
+  theme_minimal()+
+   theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+#View(data)
+```
+
+
+
+
+```{r}
+# Prepare data for the pie chart
+visitor_type_data <- data %>%
+  group_by(VisitorType) %>%
+  summarise(count = n())
+
+
+plot_ly(
+  visitor_type_data, 
+  labels = ~VisitorType,  # Labels for the pie chart
+  values = ~count,  # Values for each slice
+  type = 'pie',  # Pie chart type
+  textinfo = 'label+percent',  # Show both label and percentage
+  hoverinfo = 'label+percent+value',  # Show label, percentage, and count on hover
+  marker = list(colors = c('skyblue', 'lightgreen', 'coral'))  # Custom color palette
+) %>%
+  layout(
+    title = list(text = "Pie Chart for VisitorType", x = 0.5)
+ )
+```
+
+
